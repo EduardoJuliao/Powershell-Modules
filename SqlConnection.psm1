@@ -8,7 +8,7 @@
  .Parameter SQLDBName
   The databaseName.
 #>
-function New-Connection {
+function New-SqlConnection {
     [OutputType([System.Data.SqlClient.SqlConnection])]
     param(
         [Parameter(Mandatory = $true,
@@ -39,17 +39,26 @@ function New-Connection {
   .Parameter closeConnection
   Tells the module to close the connection after the execution.
 #>
-function Invoke-Script {
-    [OutputType([System.Data.DataSet.DataTable])]
+function Invoke-SqlScript {
+    [OutputType([System.Data.DataSet])]
     param(
+        [Parameter(Mandatory = $true,
+        ValueFromPipelineByPropertyName = $true,
+        Position = 0)]
         [System.Data.SqlClient.SqlConnection]$SqlConnection,
+        [Parameter(Mandatory = $true,
+        ValueFromPipelineByPropertyName = $true,
+        Position = 1)]
         [string]$SqlQuery,
-        [boolean]$closeConnection = $true
+        [Parameter(Mandatory = $false,
+        ValueFromPipelineByPropertyName = $true,
+        Position = 2)]
+        [bool]$CloseConnection = $true
     )
-    if ($SqlConnection.State -eq "Closed") {
+    if ($SqlConnection.State -ne "Open") {
         $SqlConnection.Open();
     }
-    
+     
     $SqlCmd = New-Object System.Data.SqlClient.SqlCommand;
     $SqlCmd.CommandText = $SqlQuery;
     $SqlCmd.Connection = $SqlConnection;
@@ -58,10 +67,10 @@ function Invoke-Script {
     $DataSet = New-Object System.Data.DataSet;
     $SqlAdapter.Fill($DataSet);
 
-    if ($SqlConnection.State -ne "Closed" -or $closeConnection -eq $true) {
+    if ($SqlConnection.State -ne "Closed" -and $CloseConnection) {
         $SqlConnection.Close();
     }
-    return $DataSet.Tables;
+    return $DataSet;
 }
 
 Export-ModuleMember -Function New-*
